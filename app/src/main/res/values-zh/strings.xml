@@ -13,4 +13,5 @@
     <string name="prompt_username">用户名</string>
     <string name="message_wifi_disabled">WIFI 未启用</string>
     <string name="message_wifi_wrong_ssid">请连接到ShanghaiTech无线网络！</string>
+    <string name="appwidget_text">一键认证</string>
 </resources>

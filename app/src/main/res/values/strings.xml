@@ -14,4 +14,6 @@
     <string name="prompt_ok">OK</string>
     <string name="message_wifi_disabled">WIFI is disabled.</string>
     <string name="message_wifi_wrong_ssid">Please connect to ShanghaiTech and try again!</string>
+    <string name="appwidget_text">One Key Auth</string>
+    <string name="add_widget">Add widget</string>
 </resources>

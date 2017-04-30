@@ -117,6 +117,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (!isChecked)
                     mAutoLoginView.setChecked(false);
+                saveConfig();
             }
         });
         mAutoLoginView.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -124,6 +125,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked)
                     mRememberView.setChecked(true);
+                saveConfig();
+
             }
         });
 
@@ -182,7 +185,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //                populateAutoComplete();
 //            }
 //        }
-        // TODO: Request Permission Check
     }
 
 
@@ -230,43 +232,27 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
 
-            // Save configurations
-            SharedPreferences preferences = getSharedPreferences("ShanghaitechWifiHelper-config",Context.MODE_PRIVATE);
-            Boolean isRemember = mRememberView.isChecked();
-            Boolean isAutoLogin = mAutoLoginView.isChecked();
-            Editor edt = preferences.edit();
-            if (mRememberView.isChecked()) {
-                edt.putString("username", username);
-                edt.putString("password", password);
-                edt.putBoolean("isRemember", isRemember);
-                edt.putBoolean("isAutoLogin", isAutoLogin);
-            } else {
-                edt.putString("username", "");
-                edt.putString("password", "");
-                edt.putBoolean("isRemember", false);
-                edt.putBoolean("isAutoLogin", false);
-            }
-            edt.commit();
 
+            saveConfig();
             // TODO: Enable WIFI Detection...
-//            cancel = true;
-//            WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-//            if (wifiManager != null) {
-//                int wifiState = wifiManager.getWifiState();
-//                if (wifiState == wifiManager.WIFI_STATE_ENABLED) {
-//                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-//                    String SSID = wifiInfo.getSSID();
-//                    if (SSID != "ShanghaiTech" && SSID != "guest") {
-//                        ShowMsg(this.getResources().getString(R.string.message_wifi_wrong_ssid), LoginActivity.this);
-//                    } else {
-//                        cancel = false;
-//                    }
-//                } else {
-//                    ShowMsgTurnOnWifi(LoginActivity.this, wifiManager);
-//                }
-//            } else {
-//                System.err.println("WIFI Manager is null!");
-//            }
+            cancel = true;
+            WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifiManager != null) {
+                int wifiState = wifiManager.getWifiState();
+                if (wifiState == wifiManager.WIFI_STATE_ENABLED) {
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                    String SSID = wifiInfo.getSSID();
+                    if (SSID != "ShanghaiTech" && SSID != "guest") {
+                        ShowMsg(this.getResources().getString(R.string.message_wifi_wrong_ssid), LoginActivity.this);
+                    } else {
+                        cancel = false;
+                    }
+                } else {
+                    ShowMsgTurnOnWifi(LoginActivity.this, wifiManager);
+                }
+            } else {
+                System.err.println("WIFI Manager is null!");
+            }
 
             if (!cancel) {
                 showProgress(true);
@@ -385,8 +371,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
             final Boolean retVal = loginByPost(mUsername, mPassword);
 
 //            for (String credential : DUMMY_CREDENTIALS) {
@@ -717,5 +701,27 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     //闪现提示
     public static void DisplayToast(String msg, Context context) { //getBaseContext()
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    public void saveConfig() {
+        // Save configurations
+        SharedPreferences preferences = getSharedPreferences("ShanghaitechWifiHelper-config",Context.MODE_PRIVATE);
+        String username = mUsernameView.getText().toString();
+        String password = mPasswordView.getText().toString();
+        Boolean isRemember = mRememberView.isChecked();
+        Boolean isAutoLogin = mAutoLoginView.isChecked();
+        Editor edt = preferences.edit();
+        if (mRememberView.isChecked()) {
+            edt.putString("username", username);
+            edt.putString("password", password);
+            edt.putBoolean("isRemember", isRemember);
+            edt.putBoolean("isAutoLogin", isAutoLogin);
+        } else {
+            edt.putString("username", "");
+            edt.putString("password", "");
+            edt.putBoolean("isRemember", false);
+            edt.putBoolean("isAutoLogin", false);
+        }
+        edt.commit();
     }
 }
