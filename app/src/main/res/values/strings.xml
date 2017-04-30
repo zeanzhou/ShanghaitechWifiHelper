@@ -5,13 +5,13 @@
     <string name="prompt_username">Username</string>
     <string name="prompt_password">Password</string>
     <string name="action_connect">Connect</string>
-    <string name="error_invalid_email">This email address is invalid</string>
-    <string name="error_invalid_password">This password is too short</string>
-    <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
-    <string name="permission_rationale">"Contacts permissions are needed for providing email
-        completions."
-    </string>
-    <string name="prompt_remember">Remember User Info</string>
+    <string name="prompt_remember">Remember Password</string>
     <string name="prompt_auto_connect">Always Auto Connect</string>
+    <string name="prompt_turn_on_wifi">Turn on WIFI</string>
+    <string name="prompt_info">Info</string>
+    <string name="prompt_cancel">Cancel</string>
+    <string name="prompt_ok">OK</string>
+    <string name="message_wifi_disabled">WIFI is disabled.</string>
+    <string name="message_wifi_wrong_ssid">Please connect to ShanghaiTech and try again!</string>
 </resources>

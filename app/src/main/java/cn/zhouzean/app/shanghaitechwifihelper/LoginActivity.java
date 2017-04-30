@@ -3,7 +3,10 @@ package cn.zhouzean.app.shanghaitechwifihelper;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -26,7 +29,9 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -39,6 +44,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Random;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -60,23 +68,13 @@ import static android.Manifest.permission.READ_CONTACTS;
 public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
 
     /**
-     * Id to identity READ_CONTACTS permission request.
-     */
-    private static final int REQUEST_READ_CONTACTS = 0;
-
-    /**
-     * A dummy authentication store containing known user names and passwords.
-     * TODO: remove after connecting to a real authentication system.
-     */
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "test:12345", "zhouza:000000"
-    };
-    /**
      * Keep track of the login task to ensure we can cancel it if requested.
      */
     private UserLoginTask mAuthTask = null;
 
     // UI references.
+    private Switch mRememberView;
+    private Switch mAutoLoginView;
     private EditText mUsernameView;
     private EditText mPasswordView;
     private View mProgressView;
@@ -85,6 +83,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SharedPreferences preferences=getSharedPreferences("ShanghaitechWifiHelper-config", Context.MODE_PRIVATE);
+        String username = preferences.getString("username", "");
+        String password = preferences.getString("password", "");
+        Boolean isRemember = preferences.getBoolean("isRemember", false);
+        Boolean isAutoLogin = preferences.getBoolean("isAutoLogin", false);
+
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mUsernameView = (EditText) findViewById(R.id.username);
@@ -100,6 +104,28 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 return false;
             }
         });
+        mRememberView = (Switch) findViewById(R.id.remember_switch);
+        mAutoLoginView = (Switch) findViewById(R.id.autologin_switch);
+
+        mUsernameView.setText(username);
+        mPasswordView.setText(password);
+        mRememberView.setChecked(isRemember);
+        mAutoLoginView.setChecked(isAutoLogin);
+
+        mRememberView.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (!isChecked)
+                    mAutoLoginView.setChecked(false);
+            }
+        });
+        mAutoLoginView.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked)
+                    mRememberView.setChecked(true);
+            }
+        });
 
         Button mConnectButton = (Button) findViewById(R.id.connect_button);
         mConnectButton.setOnClickListener(new OnClickListener() {
@@ -111,6 +137,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+        if (isAutoLogin)
+            attemptLogin();
     }
 
 //    private void populateAutoComplete() {
@@ -201,10 +229,51 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
-            showProgress(true);
-            mAuthTask = new UserLoginTask(username, password);
-//            mAuthTask.execute((Void) null);
-            mAuthTask.execute((Void) null);
+
+            // Save configurations
+            SharedPreferences preferences = getSharedPreferences("ShanghaitechWifiHelper-config",Context.MODE_PRIVATE);
+            Boolean isRemember = mRememberView.isChecked();
+            Boolean isAutoLogin = mAutoLoginView.isChecked();
+            Editor edt = preferences.edit();
+            if (mRememberView.isChecked()) {
+                edt.putString("username", username);
+                edt.putString("password", password);
+                edt.putBoolean("isRemember", isRemember);
+                edt.putBoolean("isAutoLogin", isAutoLogin);
+            } else {
+                edt.putString("username", "");
+                edt.putString("password", "");
+                edt.putBoolean("isRemember", false);
+                edt.putBoolean("isAutoLogin", false);
+            }
+            edt.commit();
+
+            // TODO: Enable WIFI Detection...
+//            cancel = true;
+//            WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+//            if (wifiManager != null) {
+//                int wifiState = wifiManager.getWifiState();
+//                if (wifiState == wifiManager.WIFI_STATE_ENABLED) {
+//                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+//                    String SSID = wifiInfo.getSSID();
+//                    if (SSID != "ShanghaiTech" && SSID != "guest") {
+//                        ShowMsg(this.getResources().getString(R.string.message_wifi_wrong_ssid), LoginActivity.this);
+//                    } else {
+//                        cancel = false;
+//                    }
+//                } else {
+//                    ShowMsgTurnOnWifi(LoginActivity.this, wifiManager);
+//                }
+//            } else {
+//                System.err.println("WIFI Manager is null!");
+//            }
+
+            if (!cancel) {
+                showProgress(true);
+                mAuthTask = new UserLoginTask(username, password);
+                mAuthTask.execute((Void) null);
+            }
+
         }
     }
 
@@ -317,17 +386,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         @Override
         protected Boolean doInBackground(Void... params) {
             // TODO: attempt authentication against a network service.
-            System.out.println("DEBUG: doInBackground() has enter...");
-            final Boolean retVal = loginByPost(mUsername, mPassword);
-            System.out.println("DEBUG: doInBackground() loginByPost() finished...");
 
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mUsername)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
+            final Boolean retVal = loginByPost(mUsername, mPassword);
+
+//            for (String credential : DUMMY_CREDENTIALS) {
+//                String[] pieces = credential.split(":");
+//                if (pieces[0].equals(mUsername)) {
+//                    // Account exists, return true if the password matches.
+//                    return pieces[1].equals(mPassword);
+//                }
+//            }
             return retVal;
         }
 
@@ -335,11 +403,17 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         protected void onPostExecute(final Boolean success) {
             mAuthTask = null;
             showProgress(false);
-
+            System.out.println("success = "+success);
             if (success) {
-                finish();
+                System.out.println("SUCCESS");
+//                try {
+//                    Thread.sleep(5000);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//                finish();
             } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
+//                mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();
             }
         }
@@ -364,7 +438,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     public Boolean loginByPost(String userName, String userPass) {
         Boolean retVal = false;
         String sessionID = getRandomString(32);
-        System.out.println("DEBUG: loginByPost() begin...");
         try {
             // 请求的地址
             String spec = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/Webauth/webAuthAction!login.action";
@@ -398,17 +471,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             urlConnection
                     .setRequestProperty("User-Agent",
                             "ShanghaiTech_WIFI_Helper Android");
-            System.out.println("DEBUG: loginByPost() Head set");
             urlConnection.setDoOutput(true); // 发送POST请求必须设置允许输出
             urlConnection.setDoInput(true); // 发送POST请求必须设置允许输入
-            System.out.println("DEBUG: loginByPost() set finished...");
             //setDoInput的默认值就是true
             //获取输出流
             OutputStream os = urlConnection.getOutputStream();
-            System.out.println("DEBUG: loginByPost() getOutputStream");
             os.write(data.getBytes());
             os.flush();
-            System.out.println("DEBUG: loginByPost() os.flush()...");
             if (urlConnection.getResponseCode() == 200) {
 
                 // 获取响应的输入流对象
@@ -428,7 +497,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 is.close();
                 baos.close();
                 // 返回字符串
-                final String result = new String(baos.toByteArray()).replace("null", "\"\"");
+                final String result = new String(baos.toByteArray()).replace("null", "\"\""); // Avoid null
                 System.out.println(result);
 
                 JsonParser parser = new JsonParser();  //创建JSON解析器
@@ -445,14 +514,21 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 } catch (Exception e) {
 //                    e.printStackTrace();
                 }
-                if (dataStr == "") {// ... && object.get("data").getAsString() == "session_timeout"
+                System.out.println("dataStr = " + dataStr);
+                if (message != "" && message.indexOf("token") < 0) {
+                    // failed
+                }
+                else if (dataStr == "session_timeout" || object.get("sessionTimeOut").getAsBoolean()) {
+                    message = "会话已超时";
+                }
+                else { // if (success)
                     Boolean portalAuth = object.get("data").getAsJsonObject().get("portalAuth").getAsBoolean();
                     Integer webPortalOvertimePeriod = object.get("data").getAsJsonObject().get("webPortalOvertimePeriod").getAsInt();
                     final String IPv4Addr = object.get("data").getAsJsonObject().get("ip").getAsString();
 
                     System.out.println("IPv4 Address=" + IPv4Addr);
                     System.out.println("Session ID=" + sessionID);
-                    if (portalAuth == false && success) { // 101 1103 1612 portalAuth == 0
+                    if (portalAuth == false) { // 101 1103 1612 portalAuth == 0
                         message = "恭喜您，已成功登录";
                         retVal = true;
                     }
@@ -473,8 +549,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                             }
                             try {
                                 dataStr = object2.get("data").getAsString();
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                            } catch (Exception e) { // Session timeout
+//                                e.printStackTrace();
+                                message = "会话已超时";
+                                break;
                             }
                             if (dataStr == ""){
                                 Integer portalAuthStatus = object2.get("data").getAsJsonObject().get("portalAuthStatus").getAsInt();
@@ -499,7 +577,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                         message = "认证失败";
                                     break;
                                 }
-                                System.out.println(portalAuthResult);
                             }
 
                         }
@@ -507,6 +584,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 }
 
                 final String messageToDisplay = message;
+                final Boolean retVal_ = retVal;
                 // 通过runOnUiThread方法进行修改主线程的控件内容
                 LoginActivity.this.runOnUiThread(new Runnable() {
                     @Override
@@ -514,12 +592,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         // 在这里把返回的数据写在控件上 会出现什么情况尼
 //                        tv_result.setText(result);
                         if (messageToDisplay != "")
-                            ShowMsg(messageToDisplay, LoginActivity.this);
+                            ShowMsg(messageToDisplay, LoginActivity.this, retVal_);
+                        else
+                            ShowMsg("未知错误", LoginActivity.this);
                     }
                 });
                 System.out.println(messageToDisplay);
             } else {
-                System.out.println("链接失败.........");
+                ShowMsg("Access Failed", LoginActivity.this);
             }
         } catch (Exception e) {
 //            e.printStackTrace();
@@ -593,12 +673,44 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
         return result;
     }
+
+
+    public void ShowMsg(String msg, Context context) {
+        ShowMsg(msg, context, false);
+    }
     //提示信息
-    public static void ShowMsg(String msg, Context context) { //MainActivity.this
+    public void ShowMsg(String msg, Context context, final Boolean finishAfterClick) { //MainActivity.this
         AlertDialog.Builder dlg = new AlertDialog.Builder(context);
-        dlg.setTitle("提示");
+        dlg.setTitle(this.getResources().getString(R.string.prompt_info));
         dlg.setMessage(msg);
-        dlg.setPositiveButton("确定",null);
+        dlg.setPositiveButton(this.getResources().getString(R.string.prompt_ok), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (finishAfterClick)
+                    finish();
+            }
+        });
+        dlg.show();
+    }
+
+    //提示信息
+    public void ShowMsgTurnOnWifi(Context context, final WifiManager wifiManager) { //MainActivity.this
+        final Context context_ = context;
+        final WifiManager wifiManager_ = wifiManager;
+        AlertDialog.Builder dlg = new AlertDialog.Builder(context);
+        dlg.setTitle(this.getResources().getString(R.string.prompt_info));
+        dlg.setMessage(this.getResources().getString(R.string.message_wifi_disabled));
+        dlg.setPositiveButton(this.getResources().getString(R.string.prompt_turn_on_wifi), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (wifiManager_ != null) {
+                    wifiManager_.setWifiEnabled(true);
+                } else {
+                    System.err.println("WifiManager is null!");
+                }
+            }
+        });
+        dlg.setNegativeButton(this.getResources().getString(R.string.prompt_cancel), null);
         dlg.show();
     }
 
@@ -607,4 +719,3 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
     }
 }
-
