@@ -12,6 +12,7 @@
     tools:context="cn.zhouzean.app.shanghaitechwifihelper.LoginActivity">
 
     <!-- Login progress -->
+
     <ProgressBar
         android:id="@+id/login_progress"
         style="?android:attr/progressBarStyleLarge"

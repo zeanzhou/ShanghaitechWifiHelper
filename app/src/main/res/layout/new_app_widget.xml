@@ -12,8 +12,10 @@
         android:layout_alignBaseline="@+id/appwidget_text"
         android:layout_alignBottom="@+id/appwidget_text"
         android:layout_centerHorizontal="true"
-        android:background="@android:color/background_light"
+        android:background="@drawable/shape"
         android:elevation="0dp"
-        android:text="@string/appwidget_text" />
+        android:text="@string/appwidget_text"
+        android:padding="5dp"
+        />
 
 </RelativeLayout>

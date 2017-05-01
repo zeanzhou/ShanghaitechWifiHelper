@@ -242,8 +242,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 if (wifiState == wifiManager.WIFI_STATE_ENABLED) {
                     WifiInfo wifiInfo = wifiManager.getConnectionInfo();
                     String SSID = wifiInfo.getSSID();
-                    if (SSID != "ShanghaiTech" && SSID != "guest") {
-                        ShowMsg(this.getResources().getString(R.string.message_wifi_wrong_ssid), LoginActivity.this);
+                    if (SSID.startsWith("\"") && SSID.endsWith("\""))
+                        SSID = SSID.substring(1, SSID.length()-1);
+                    if (!SSID.equals("ShanghaiTech") && !SSID.equals("guest")) {
+                        ShowMsg(this.getResources().getString(R.string.message_wifi_wrong_ssid)+"\nSSID: "+SSID, LoginActivity.this);
                     } else {
                         cancel = false;
                     }
@@ -499,10 +501,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //                    e.printStackTrace();
                 }
                 System.out.println("dataStr = " + dataStr);
-                if (message != "" && message.indexOf("token") < 0) {
+                if (!message.equals("") && message.indexOf("token") < 0) {
                     // failed
                 }
-                else if (dataStr == "session_timeout" || object.get("sessionTimeOut").getAsBoolean()) {
+                else if (dataStr.equals("session_timeout") || object.get("sessionTimeOut").getAsBoolean()) {
                     message = "会话已超时";
                 }
                 else { // if (success)
@@ -520,14 +522,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         while (true) {
                             String portalAuthResult = syncPortalAuthResult(IPv4Addr, sessionID);
                             System.out.println(portalAuthResult);
-                            if (portalAuthResult == "") {
+                            if (portalAuthResult.equals("")) {
                                 message = "服务器连接中断，请重新登录";
                                 break;
                             }
                             JsonParser parser2=new JsonParser();  //创建JSON解析器
                             JsonObject object2=(JsonObject) parser2.parse(portalAuthResult);  //创建JsonObject对象
                             String message2 = object2.get("message").getAsString();
-                            if (message2 == "EmptySessionId") {
+                            if (message2.equals("EmptySessionId")) {
                                 message = "服务器连接中断，请重新登录";
                                 break;
                             }
@@ -538,7 +540,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                 message = "会话已超时";
                                 break;
                             }
-                            if (dataStr == ""){
+                            if (dataStr.equals("")){
                                 Integer portalAuthStatus = object2.get("data").getAsJsonObject().get("portalAuthStatus").getAsInt();
                                 if (portalAuthStatus == 1) {
                                     // Success
@@ -566,7 +568,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         }
                     }
                 }
-
                 final String messageToDisplay = message;
                 final Boolean retVal_ = retVal;
                 // 通过runOnUiThread方法进行修改主线程的控件内容
@@ -575,7 +576,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     public void run() {
                         // 在这里把返回的数据写在控件上 会出现什么情况尼
 //                        tv_result.setText(result);
-                        if (messageToDisplay != "")
+                        if (!messageToDisplay.equals(""))
                             ShowMsg(messageToDisplay, LoginActivity.this, retVal_);
                         else
                             ShowMsg("未知错误", LoginActivity.this);
@@ -604,8 +605,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // 设置请求的方式
             urlConnection.setRequestMethod("POST");
             // 设置请求的超时时间
-            urlConnection.setReadTimeout(5000);
-            urlConnection.setConnectTimeout(5000);
+            urlConnection.setReadTimeout(2000);
+            urlConnection.setConnectTimeout(2000);
             // 传递的数据
             String data = "clientIp=" + URLEncoder.encode(IPv4Addr, "UTF-8")
                     + "&browserFlag=" + "zh"
