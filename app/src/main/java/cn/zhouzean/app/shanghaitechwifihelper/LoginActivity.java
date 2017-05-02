@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -47,6 +50,10 @@ import java.util.Random;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.net.ConnectivityManager;
+import android.net.NetworkRequest;
+import android.net.NetworkCapabilities;
+import android.net.Network;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -142,6 +149,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mProgressView = findViewById(R.id.login_progress);
         if (isAutoLogin)
             attemptLogin();
+        else
+            DisplayToast(getString(R.string.message_widget_need_auto_connect), LoginActivity.this);
     }
 
 //    private void populateAutoComplete() {
@@ -389,14 +398,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         protected void onPostExecute(final Boolean success) {
             mAuthTask = null;
             showProgress(false);
-            System.out.println("success = "+success);
             if (success) {
                 System.out.println("SUCCESS");
-//                try {
-//                    Thread.sleep(5000);
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
 //                finish();
             } else {
 //                mPasswordView.setError(getString(R.string.error_incorrect_password));
@@ -422,16 +425,29 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     }
 
     public Boolean loginByPost(String userName, String userPass) {
+//        try {
+//            String spec_auth = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/customize/1478262836414/phone/auth.jsp";
+//            URL url_auth = new URL(spec_auth);
+//            HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
+//            urlConnection_auth.setReadTimeout(5000);
+//            urlConnection_auth.setConnectTimeout(5000);
+//            InputStream is = urlConnection_auth.getInputStream();
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+//            reader.toString();
+//            System.out.println("DEBUG:   "+urlConnection_auth.getHeaderField("Set-Cookie"));
+//        } catch (Exception e) {
+//
+//        }
         Boolean retVal = false;
-        String sessionID = getRandomString(32);
+        String sessionID;
+        String XSRF_TOKEN;
         try {
             // 请求的地址
             String spec = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/Webauth/webAuthAction!login.action";
             // 根据地址创建URL对象
             URL url = new URL(spec);
             // 根据URL对象打开链接
-            HttpURLConnection urlConnection = (HttpURLConnection) url
-                    .openConnection();
+            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
             // 设置请求的方式
             urlConnection.setRequestMethod("POST");
             // 设置请求的超时时间
@@ -452,7 +468,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     "application/x-www-form-urlencoded");
             // 设置请求的头
             urlConnection.setRequestProperty("Cookie",
-                    "JSESSIONID=" + sessionID);
+                    "JSESSIONID=" + getRandomString(32));
             // 设置请求的头
             urlConnection
                     .setRequestProperty("User-Agent",
@@ -465,7 +481,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             os.write(data.getBytes());
             os.flush();
             if (urlConnection.getResponseCode() == 200) {
-
                 // 获取响应的输入流对象
                 InputStream is = urlConnection.getInputStream();
                 // 创建字节输出流对象
@@ -488,19 +503,20 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
                 JsonParser parser = new JsonParser();  //创建JSON解析器
                 JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
-                System.out.println("message="+object.get("message").getAsString()); //将json数据转为为String型的数据
-                System.out.println("success="+object.get("success").getAsBoolean()); //将json数据转为为boolean型的数据
 
                 Boolean success = object.get("success").getAsBoolean();
                 String message = object.get("message").getAsString();
+//                System.out.println("message="+message);
+//                System.out.println("success="+success);
 
                 String dataStr = "";
                 try {
                     dataStr = object.get("data").getAsString();
-                } catch (Exception e) {
+                } catch (Exception e) { // cannot be parsed as string... JSON Obj
 //                    e.printStackTrace();
                 }
-                System.out.println("dataStr = " + dataStr);
+//                System.out.println("dataStr = " + dataStr);
+
                 if (!message.equals("") && message.indexOf("token") < 0) {
                     // failed
                 }
@@ -508,27 +524,33 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     message = "会话已超时";
                 }
                 else { // if (success)
+                    sessionID = object.get("data").getAsJsonObject().get("sessionId").getAsString();
+                    XSRF_TOKEN = object.get("token").getAsString().substring(6);
                     Boolean portalAuth = object.get("data").getAsJsonObject().get("portalAuth").getAsBoolean();
                     Integer webPortalOvertimePeriod = object.get("data").getAsJsonObject().get("webPortalOvertimePeriod").getAsInt();
                     final String IPv4Addr = object.get("data").getAsJsonObject().get("ip").getAsString();
 
                     System.out.println("IPv4 Address=" + IPv4Addr);
                     System.out.println("Session ID=" + sessionID);
+                    System.out.println("XSRF_TOKEN=" + XSRF_TOKEN);
                     if (portalAuth == false) { // 101 1103 1612 portalAuth == 0
                         message = "恭喜您，已成功登录";
                         retVal = true;
                     }
                     else {
+//                        Integer repostCount = 0;
                         while (true) {
-                            String portalAuthResult = syncPortalAuthResult(IPv4Addr, sessionID);
+                            String portalAuthResult = syncPortalAuthResult(IPv4Addr, sessionID, XSRF_TOKEN);
+                            portalAuthResult = portalAuthResult.replace("null", "\"\""); // Avoid null
                             System.out.println(portalAuthResult);
                             if (portalAuthResult.equals("")) {
-                                message = "服务器连接中断，请重新登录";
+                                message = getString(R.string.message_httpcode_not_200);
                                 break;
                             }
                             JsonParser parser2=new JsonParser();  //创建JSON解析器
                             JsonObject object2=(JsonObject) parser2.parse(portalAuthResult);  //创建JsonObject对象
                             String message2 = object2.get("message").getAsString();
+
                             if (message2.equals("EmptySessionId")) {
                                 message = "服务器连接中断，请重新登录";
                                 break;
@@ -537,8 +559,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                 dataStr = object2.get("data").getAsString();
                             } catch (Exception e) { // Session timeout
 //                                e.printStackTrace();
-                                message = "会话已超时";
-                                break;
                             }
                             if (dataStr.equals("")){
                                 Integer portalAuthStatus = object2.get("data").getAsJsonObject().get("portalAuthStatus").getAsInt();
@@ -548,6 +568,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                     retVal = true;
                                     break;
                                 } else if (portalAuthStatus == 0) {
+//                                    Looper.prepare();
+//                                    DisplayToast(getString(R.string.message_post_again)+" ("+(repostCount)+")", LoginActivity.this);
+//                                    Looper.loop();
                                     Thread.sleep(webPortalOvertimePeriod);
                                 } else {
                                     Integer portalErrorCode = object2.get("data").getAsJsonObject().get("portalErrorCode").getAsInt();
@@ -563,6 +586,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                         message = "认证失败";
                                     break;
                                 }
+                            } else {
+                                message = message2;
+                                break; // dataStr has content
                             }
 
                         }
@@ -584,19 +610,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 });
                 System.out.println(messageToDisplay);
             } else {
-                ShowMsg("Access Failed", LoginActivity.this);
+                ShowMsg(getString(R.string.message_httpcode_not_200), LoginActivity.this);
             }
         } catch (Exception e) {
-//            e.printStackTrace();
+            e.printStackTrace();
         }
         return retVal;
     }
 
-    public String syncPortalAuthResult(String IPv4Addr, String SessionID) {
+    public String syncPortalAuthResult(String IPv4Addr, String SessionID, String XSRF_TOKEN) {
         String result = "";
         try {
             // 请求的地址
-            String spec = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/Webauth/syncPortalAuthResult!login.action";
+            String spec = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/Webauth/webAuthAction!syncPortalAuthResult.action";
             // 根据地址创建URL对象
             URL url = new URL(spec);
             // 根据URL对象打开链接
@@ -611,18 +637,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             String data = "clientIp=" + URLEncoder.encode(IPv4Addr, "UTF-8")
                     + "&browserFlag=" + "zh"
                     ;
+            System.out.println("POST Request: " + data);
             // 设置请求的头
             urlConnection.setRequestProperty("Accept", "*/*");
-            // 设置请求的头
-            urlConnection.setRequestProperty("Content-Type",
-                    "application/x-www-form-urlencoded");
-            // 设置请求的头
-            urlConnection.setRequestProperty("Cookie",
-                    "JSESSIONID=" + SessionID);
-            // 设置请求的头
-            urlConnection
-                    .setRequestProperty("User-Agent",
-                            "ShanghaiTech_WIFI_Helper Android");
+            urlConnection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4");
+            urlConnection.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
+            urlConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            urlConnection.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+            urlConnection.setRequestProperty("X-XSRF-TOKEN", XSRF_TOKEN);
+            urlConnection.setRequestProperty("Cookie", "JSESSIONID=" + SessionID + "; " + "XSRF_TOKEN=" + XSRF_TOKEN);
+            urlConnection.setRequestProperty("User-Agent", "ShanghaiTech_WIFI_Helper Android");
 
             urlConnection.setDoOutput(true); // 发送POST请求必须设置允许输出
             urlConnection.setDoInput(true); // 发送POST请求必须设置允许输入
@@ -651,7 +675,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 // 返回字符串
                 result = new String(baos.toByteArray());
             } else {
-                System.out.println("链接失败.........");
+                System.out.println("Sync Connection Failed...");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -700,7 +724,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     }
 
     //闪现提示
-    public static void DisplayToast(String msg, Context context) { //getBaseContext()
+    public void DisplayToast(String msg, Context context) { //getBaseContext()
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
     }
 
@@ -725,4 +749,32 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
         edt.commit();
     }
+//    private void bindToNetwork() {
+//        final ConnectivityManager connectivityManager = (ConnectivityManager) LoginActivity.getSystemService(Context.CONNECTIVITY_SERVICE);
+//            NetworkRequest.Builder builder;
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            builder = new NetworkRequest.Builder();
+//            //set the transport type to WIFI
+//            builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+//            connectivityManager.requestNetwork(builder.build(), new ConnectivityManager.NetworkCallback() {
+//                @Override
+//                public void onAvailable(Network network) {
+//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//                        connectivityManager.bindProcessToNetwork(null);
+//                        if (barCodeData.getSsid().contains("screenspace")) {
+//                            connectivityManager.bindProcessToNetwork(network);
+//                        }
+//
+//                    } else {
+//                        //This method was deprecated in API level 23
+//                        ConnectivityManager.setProcessDefaultNetwork(null);
+//                        if (barCodeData.getSsid().contains("screenspace")) {
+//                            ConnectivityManager.setProcessDefaultNetwork(network);
+//                        }
+//                    }
+//                    connectivityManager.unregisterNetworkCallback(this);
+//                }
+//            });
+//        }
+//    }
 }

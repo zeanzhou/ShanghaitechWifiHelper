@@ -14,4 +14,7 @@
     <string name="message_wifi_disabled">WIFI 未启用</string>
     <string name="message_wifi_wrong_ssid">请连接到ShanghaiTech无线网络！</string>
     <string name="appwidget_text">一键认证</string>
+    <string name="message_widget_need_auto_connect">打开自动连接以使用“一键认证”小插件</string>
+    <string name="message_post_again">正在与验证服务器交换数据</string>
+    <string name="message_httpcode_not_200">无法连接认证服务器！</string>
 </resources>
