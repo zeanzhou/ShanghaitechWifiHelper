@@ -43,3 +43,6 @@ captures/
 
 # Keystore files
 *.jks
+
+# distribution files
+distribution/
