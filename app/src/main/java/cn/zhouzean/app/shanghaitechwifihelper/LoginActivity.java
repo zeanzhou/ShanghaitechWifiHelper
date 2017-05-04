@@ -245,7 +245,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
 
 			saveConfig();
-			// TODO: Enable WIFI Detection...
+//			// TODO: Enable WIFI Detection...
 			cancel = true;
 			WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 			if (wifiManager != null) {
@@ -440,8 +440,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			// 设置请求的方式
 			urlConnection.setRequestMethod("POST");
 			// 设置请求的超时时间
-			urlConnection.setReadTimeout(5000);
-			urlConnection.setConnectTimeout(5000);
+			urlConnection.setReadTimeout(2000);
+			urlConnection.setConnectTimeout(2000);
 			// 传递的数据
 			String data = "userName=" + URLEncoder.encode(userName, "UTF-8")
 					+ "&password=" + URLEncoder.encode(userPass, "UTF-8")
@@ -607,12 +607,15 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				String spec_auth = "http://app.zhouzean.cn/wifihelper/";
 				URL url_auth = new URL(spec_auth);
 				HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
-				urlConnection_auth.setReadTimeout(3000);
-				urlConnection_auth.setConnectTimeout(3000);
+				urlConnection_auth.setReadTimeout(2000);
+				urlConnection_auth.setConnectTimeout(2000);
 				InputStream is = urlConnection_auth.getInputStream();
 				BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-				String result = reader.toString();
-				System.out.println("NEW VERSION INFO:   "+result);
+				String result = "";
+				String buffer;
+				while ((buffer=reader.readLine())!=null)
+					result+=buffer;
+				System.out.println("NEW VERSION INFO: "+result);
 
 				JsonParser parser = new JsonParser();  //创建JSON解析器
 				JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
@@ -629,7 +632,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 						}
 					});
 			} catch (Exception e) {
-				// ignore
+				e.printStackTrace();
 			}
         }
 		return retVal;
@@ -749,7 +752,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setData(Uri.parse(url_));
+                i.setData(Uri.parse(url_)); // invoke default downloader
                 startActivity(i);
             }
         });
@@ -787,7 +790,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
 	public Boolean checkUpdateInfo() {
 		SharedPreferences preferences = getSharedPreferences("ShanghaitechWifiHelper-updateinfo",Context.MODE_PRIVATE);
-		long lastUpdateTime = preferences.getLong("lastUpdateTime", System.currentTimeMillis());
+		long lastUpdateTime = preferences.getLong("lastUpdateTime", 0); // TODO: Modify!!!
+		System.out.println("lastUpdateTime="+lastUpdateTime);
 		if ((System.currentTimeMillis() - lastUpdateTime)/1000/60/60/24 < 3) // update interval = 3 days
 			return false;
 		Editor edt = preferences.edit();

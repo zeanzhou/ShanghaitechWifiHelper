@@ -16,9 +16,9 @@
     <string name="message_wifi_wrong_ssid">Please connect to ShanghaiTech and try again!</string>
     <string name="appwidget_text">One Key Auth</string>
     <string name="add_widget">Add widget</string>
-    <string name="message_widget_need_auto_connect">OneKeyAuth Widget needs Auto Connect turned on</string>
+    <string name="message_widget_need_auto_connect">OneKeyAuth Widget needs Auto Connect</string>
     <string name="message_post_again">Exchanging data with auth server</string>
     <string name="message_httpcode_not_200">Fail to connect auth server!</string>
     <string name="message_new_version">New version released</string>
-    <string name="prompt_update">Update</string>
+    <string name="prompt_update">Download</string>
 </resources>

@@ -19,5 +19,5 @@
     <string name="message_httpcode_not_200">无法连接认证服务器！</string>
     <string name="add_widget">添加小部件</string>
     <string name="message_new_version">发现新版本</string>
-    <string name="prompt_update">更新</string>
+    <string name="prompt_update">立即下载</string>
 </resources>
