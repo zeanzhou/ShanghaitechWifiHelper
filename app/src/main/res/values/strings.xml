@@ -17,6 +17,6 @@
     <string name="appwidget_text">One Key Auth</string>
     <string name="add_widget">Add widget</string>
     <string name="message_widget_need_auto_connect">OneKeyAuth Widget needs Auto Connect turned on</string>
-    <string name="message_post_again">Exchanging data wih auth server</string>
+    <string name="message_post_again">Exchanging data with auth server</string>
     <string name="message_httpcode_not_200">Fail to connect auth server!</string>
 </resources>

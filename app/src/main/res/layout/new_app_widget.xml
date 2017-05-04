@@ -9,8 +9,6 @@
         android:id="@+id/button"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_alignBaseline="@+id/appwidget_text"
-        android:layout_alignBottom="@+id/appwidget_text"
         android:layout_centerHorizontal="true"
         android:background="@drawable/shape"
         android:elevation="0dp"

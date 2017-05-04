@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="cn.zhouzean.app.shanghaitechwifihelper"
-    android:versionCode="0"
-    android:versionName="1.0"
-    >
+    package="cn.zhouzean.app.shanghaitechwifihelper">
+    <!--android:versionCode="0"-->
+    <!--android:versionName="1.0"-->
+
     <!-- To auto-complete the email text field in the login form with the user's emails -->
     <!-- <uses-permission android:name="android.permission.GET_ACCOUNTS" /> -->
     <!-- <uses-permission android:name="android.permission.READ_PROFILE" /> -->

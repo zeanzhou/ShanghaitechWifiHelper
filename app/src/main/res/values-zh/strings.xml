@@ -17,4 +17,5 @@
     <string name="message_widget_need_auto_connect">打开自动连接以使用“一键认证”小插件</string>
     <string name="message_post_again">正在与验证服务器交换数据</string>
     <string name="message_httpcode_not_200">无法连接认证服务器！</string>
+    <string name="add_widget">添加小部件</string>
 </resources>
