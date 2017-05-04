@@ -54,6 +54,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkRequest;
 import android.net.NetworkCapabilities;
 import android.net.Network;
+import android.content.Context;
+import android.content.Intent;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -425,19 +427,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 	}
 
 	public Boolean loginByPost(String userName, String userPass) {
-//        try {
-//            String spec_auth = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/customize/1478262836414/phone/auth.jsp";
-//            URL url_auth = new URL(spec_auth);
-//            HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
-//            urlConnection_auth.setReadTimeout(5000);
-//            urlConnection_auth.setConnectTimeout(5000);
-//            InputStream is = urlConnection_auth.getInputStream();
-//            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-//            reader.toString();
-//            System.out.println("DEBUG:   "+urlConnection_auth.getHeaderField("Set-Cookie"));
-//        } catch (Exception e) {
-//
-//        }
 		Boolean retVal = false;
 		String sessionID;
 		String XSRF_TOKEN;
@@ -599,7 +588,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				LoginActivity.this.runOnUiThread(new Runnable() {
 					@Override
 					public void run() {
-						// 在这里把返回的数据写在控件上 会出现什么情况尼
 //                        tv_result.setText(result);
 						if (!messageToDisplay.equals(""))
 							ShowMsg(messageToDisplay, LoginActivity.this, retVal_);
@@ -614,6 +602,36 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		if (retVal && checkUpdateInfo()) { // if auth successfully && interval > 3 days, check new version
+			try {
+				String spec_auth = "http://app.zhouzean.cn/wifihelper/";
+				URL url_auth = new URL(spec_auth);
+				HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
+				urlConnection_auth.setReadTimeout(3000);
+				urlConnection_auth.setConnectTimeout(3000);
+				InputStream is = urlConnection_auth.getInputStream();
+				BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+				String result = reader.toString();
+				System.out.println("NEW VERSION INFO:   "+result);
+
+				JsonParser parser = new JsonParser();  //创建JSON解析器
+				JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
+
+				final String nowVersionName =  this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
+				final String newVersionName = object.get("versionName").getAsString();
+				final String url = object.get("url").getAsString();
+
+				if (isVersionOutdated(nowVersionName, newVersionName)) // if outdated, ask for updating
+					LoginActivity.this.runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							ShowMsgUpdate(LoginActivity.this, url, newVersionName);
+						}
+					});
+			} catch (Exception e) {
+				// ignore
+			}
+        }
 		return retVal;
 	}
 
@@ -721,6 +739,24 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		dlg.setNegativeButton(this.getResources().getString(R.string.prompt_cancel), null);
 		dlg.show();
 	}
+    //提示信息
+    public void ShowMsgUpdate(Context context, String url, String versionName) { //MainActivity.this
+		final String url_ = url;
+        AlertDialog.Builder dlg = new AlertDialog.Builder(context);
+        dlg.setTitle(this.getResources().getString(R.string.prompt_info));
+        dlg.setMessage(this.getResources().getString(R.string.message_new_version)+" "+versionName);
+        dlg.setPositiveButton(this.getResources().getString(R.string.prompt_update), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(url_));
+                startActivity(i);
+            }
+        });
+        dlg.setNegativeButton(this.getResources().getString(R.string.prompt_cancel), null);
+        dlg.show();
+    }
+
 
 	//闪现提示
 	public void DisplayToast(String msg, Context context) { //getBaseContext()
@@ -747,6 +783,26 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			edt.putBoolean("isAutoLogin", false);
 		}
 		edt.commit();
+	}
+
+	public Boolean checkUpdateInfo() {
+		SharedPreferences preferences = getSharedPreferences("ShanghaitechWifiHelper-updateinfo",Context.MODE_PRIVATE);
+		long lastUpdateTime = preferences.getLong("lastUpdateTime", System.currentTimeMillis());
+		if ((System.currentTimeMillis() - lastUpdateTime)/1000/60/60/24 < 3) // update interval = 3 days
+			return false;
+		Editor edt = preferences.edit();
+		edt.putLong("lastUpdateTime", System.currentTimeMillis());
+		edt.commit();
+		return true;
+	}
+	public Boolean isVersionOutdated(String oldVersionName, String newVersionName) {
+		String[] oldVersion = oldVersionName.split("\\.");
+		String[] newVersion = newVersionName.split("\\.");
+		for (Integer i = 0; i < 3; ++i) {
+			 if (Integer.parseInt(oldVersion[i]) < Integer.parseInt(newVersion[i]))
+			 	return true;
+		}
+		return false;
 	}
 //    private void bindToNetwork() {
 //        final ConnectivityManager connectivityManager = (ConnectivityManager) LoginActivity.getSystemService(Context.CONNECTIVITY_SERVICE);
