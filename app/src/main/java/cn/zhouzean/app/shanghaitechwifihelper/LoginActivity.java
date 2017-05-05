@@ -245,7 +245,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
 
 			saveConfig();
-//			// TODO: Enable WIFI Detection...
+			// TODO: Enable WIFI Detection...
 			cancel = true;
 			WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 			if (wifiManager != null) {
@@ -572,7 +572,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 									else if (portalErrorCode == 8000)
 										message = "第三方radius中继认证失败，请联系管理员处理，第三方错误码：未知错误";
 									else
-										message = "认证失败";
+										message = "认证失败 ("+portalErrorCode.toString()+")";
 									break;
 								}
 							} else {
@@ -599,8 +599,15 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			} else {
 				ShowMsg(getString(R.string.message_httpcode_not_200), LoginActivity.this);
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (final Exception e) {
+			final String msg = exceptionToString(e);
+			System.out.println(e.toString());
+			LoginActivity.this.runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					ShowMsg("致命错误，请立刻报告Bug！\n"+e.toString()+"\n"+msg, LoginActivity.this);
+				}
+			});
 		}
 		if (retVal && checkUpdateInfo()) { // if auth successfully && interval > 3 days, check new version
 			try {
@@ -631,8 +638,15 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 							ShowMsgUpdate(LoginActivity.this, url, newVersionName);
 						}
 					});
-			} catch (Exception e) {
-				e.printStackTrace();
+			} catch (final Exception e) {
+				final String msg = exceptionToString(e);
+				System.out.println(e.toString());
+				LoginActivity.this.runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						ShowMsg("致命错误，请立刻报告Bug！\n"+e.toString()+"\n"+msg, LoginActivity.this);
+					}
+				});
 			}
         }
 		return retVal;
@@ -697,8 +711,15 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			} else {
 				System.out.println("Sync Connection Failed...");
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (final Exception e) {
+			final String msg = exceptionToString(e);
+			System.out.println(e.toString());
+			LoginActivity.this.runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					ShowMsg("致命错误，请立刻报告Bug！\n"+e.toString()+"\n"+msg, LoginActivity.this);
+				}
+			});
 		}
 		return result;
 	}
@@ -790,7 +811,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
 	public Boolean checkUpdateInfo() {
 		SharedPreferences preferences = getSharedPreferences("ShanghaitechWifiHelper-updateinfo",Context.MODE_PRIVATE);
-		long lastUpdateTime = preferences.getLong("lastUpdateTime", 0); // TODO: Modify!!!
+		long lastUpdateTime = preferences.getLong("lastUpdateTime", 0);
 		System.out.println("lastUpdateTime="+lastUpdateTime);
 		if ((System.currentTimeMillis() - lastUpdateTime)/1000/60/60/24 < 3) // update interval = 3 days
 			return false;
@@ -807,6 +828,21 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			 	return true;
 		}
 		return false;
+	}
+	public String exceptionToString(Exception e) {
+		StringBuffer sb = new StringBuffer();
+		StackTraceElement[] stackArray = e.getStackTrace();
+		for (int i = 0; i < stackArray.length; i++) {
+			StackTraceElement element = stackArray[i];
+			sb.append(element.toString() + "\n");
+		}
+		System.out.println("<DEBUG: "+sb.toString()+">");
+		SharedPreferences preferences = getSharedPreferences("ShanghaitechWifiHelper-debug",Context.MODE_PRIVATE);
+		Editor edt = preferences.edit();
+		edt.putString("detail", sb.toString());
+		edt.putLong("time", System.currentTimeMillis());
+		edt.commit();
+		return sb.toString();
 	}
 //    private void bindToNetwork() {
 //        final ConnectivityManager connectivityManager = (ConnectivityManager) LoginActivity.getSystemService(Context.CONNECTIVITY_SERVICE);
