@@ -432,7 +432,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		String XSRF_TOKEN;
 		try {
 			// 请求的地址
-			String spec = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/Webauth/webAuthAction!login.action";
+			String spec = "https://controller.shanghaitech.edu.cn:8445/PortalServer/Webauth/webAuthAction!login.action";
 			// 根据地址创建URL对象
 			URL url = new URL(spec);
 			// 根据URL对象打开链接
@@ -656,7 +656,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		String result = "";
 		try {
 			// 请求的地址
-			String spec = "https://controller1.net.shanghaitech.edu.cn:8445/PortalServer/Webauth/webAuthAction!syncPortalAuthResult.action";
+			String spec = "https://controller.shanghaitech.edu.cn:8445/PortalServer/Webauth/webAuthAction!syncPortalAuthResult.action";
 			// 根据地址创建URL对象
 			URL url = new URL(spec);
 			// 根据URL对象打开链接
