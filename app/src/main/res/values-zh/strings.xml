@@ -25,4 +25,6 @@
     <string name="menu_bugreport">报告问题</string>
     <string name="message_already_latest">当前版本为最新版本！</string>
     <string name="message_update_failure">无法连接到更新服务器</string>
+    <string name="prompt_ignore">忽略</string>
+    <string name="message_checking_update">正在检查新版本……</string>
 </resources>

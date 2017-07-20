@@ -268,7 +268,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 					if (SSID.startsWith("\"") && SSID.endsWith("\""))
 						SSID = SSID.substring(1, SSID.length()-1);
 					if (!SSID.equals("ShanghaiTech") && !SSID.equals("guest")) {
-						ShowMsg(this.getResources().getString(R.string.message_wifi_wrong_ssid)+"\nSSID: "+SSID, LoginActivity.this);
+						ShowMsgNotShanghaiTech(this.getResources().getString(R.string.message_wifi_wrong_ssid)+"\nSSID: "+SSID, LoginActivity.this);
 					} else {
 						cancel = false;
 					}
@@ -718,6 +718,25 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		dlg.show();
 	}
 
+    //提示信息
+    public void ShowMsgNotShanghaiTech(String msg, Context context) { //MainActivity.this
+        AlertDialog.Builder dlg = new AlertDialog.Builder(context);
+        dlg.setTitle(this.getResources().getString(R.string.prompt_info));
+        dlg.setMessage(msg);
+        dlg.setPositiveButton(this.getResources().getString(R.string.prompt_ok), null);
+        dlg.setNegativeButton(this.getResources().getString(R.string.prompt_ignore), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String username = mUsernameView.getText().toString();
+                String password = mPasswordView.getText().toString();
+                showProgress(true);
+                mAuthTask = new UserLoginTask(username, password);
+                mAuthTask.execute((Void) null);
+            }
+        });
+        dlg.show();
+    }
+
 	//提示信息
 	public void ShowMsgTurnOnWifi(Context context, final WifiManager wifiManager) { //MainActivity.this
 		final Context context_ = context;
@@ -928,6 +947,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 			case R.id.action_update:
+                DisplayToast(getString(R.string.message_checking_update), LoginActivity.this);
                 Thread thread = new Thread(new Runnable() {
                     @Override
                     public void run() {

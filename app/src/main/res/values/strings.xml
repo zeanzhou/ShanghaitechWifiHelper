@@ -26,4 +26,6 @@
     <string name="menu_bugreport">Bug Report</string>
     <string name="message_already_latest">It is the latest version!</string>
     <string name="message_update_failure">Fail to connect update server</string>
+    <string name="prompt_ignore">Ignore</string>
+    <string name="message_checking_update">Checking latest version ...</string>
 </resources>
