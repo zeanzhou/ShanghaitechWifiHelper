@@ -23,7 +23,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.v7.widget.Toolbar;
+import android.text.SpannableString;
 import android.text.TextUtils;
+import android.text.util.Linkify;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,6 +39,8 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
+
+import android.text.method.LinkMovementMethod;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +75,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.widget.Toast;
 
-
 import static android.Manifest.permission.READ_CONTACTS;
 
 /**
@@ -102,8 +105,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		Boolean isAutoLogin = preferences.getBoolean("isAutoLogin", false);
 
 		setContentView(R.layout.activity_login);
-		Toolbar myToolbar = (Toolbar) findViewById(R.id.toolbar1);
-		setSupportActionBar(myToolbar);
+		Toolbar mToolbar = (Toolbar) findViewById(R.id.toolbar1);
+		setSupportActionBar(mToolbar);
 
 		// Set up the login form.
 		mUsernameView = (EditText) findViewById(R.id.username);
@@ -618,44 +621,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			});
 		}
 		if (retVal && checkUpdateInfo()) { // if auth successfully && interval > 3 days, check new version
-			try {
-				String spec_auth = "http://app.zhouzean.cn/wifihelper/";
-				URL url_auth = new URL(spec_auth);
-				HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
-				urlConnection_auth.setReadTimeout(2000);
-				urlConnection_auth.setConnectTimeout(2000);
-				InputStream is = urlConnection_auth.getInputStream();
-				BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-				String result = "";
-				String buffer;
-				while ((buffer=reader.readLine())!=null)
-					result+=buffer;
-				System.out.println("NEW VERSION INFO: "+result);
-
-				JsonParser parser = new JsonParser();  //创建JSON解析器
-				JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
-
-				final String nowVersionName =  this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
-				final String newVersionName = object.get("versionName").getAsString();
-				final String url = object.get("url").getAsString();
-
-				if (isVersionOutdated(nowVersionName, newVersionName)) // if outdated, ask for updating
-					LoginActivity.this.runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							ShowMsgUpdate(LoginActivity.this, url, newVersionName);
-						}
-					});
-			} catch (final Exception e) {
-				final String msg = exceptionToString(e);
-				System.out.println(e.toString());
-				LoginActivity.this.runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						ShowMsg("致命错误，请立刻报告Bug！\n"+e.toString()+"\n"+msg, LoginActivity.this);
-					}
-				});
-			}
+			doUpgrade();
         }
 		return retVal;
 	}
@@ -788,7 +754,24 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         dlg.setNegativeButton(this.getResources().getString(R.string.prompt_cancel), null);
         dlg.show();
     }
+	public void ShowMsgAbout(Context context, String appName, String versionName, String url1, String url2) {
+		final String text = appName + " (" + versionName + ")\n" + url1 + "\n" + url2;
 
+//        final TextView message = new TextView(context);
+        final SpannableString s = new SpannableString(text);
+        Linkify.addLinks(s, Linkify.WEB_URLS);
+//        message.setText(s);
+//        message.setMovementMethod(LinkMovementMethod.getInstance());
+
+        AlertDialog dlg = new AlertDialog.Builder(LoginActivity.this)
+        .setTitle(this.getResources().getString(R.string.menu_about))
+		.setMessage(s)
+		.setPositiveButton(this.getResources().getString(R.string.prompt_ok), null)
+		.show();
+
+        TextView alertTextView = (TextView) dlg.findViewById(android.R.id.message);
+        alertTextView.setMovementMethod(LinkMovementMethod.getInstance());
+	}
 
 	//闪现提示
 	public void DisplayToast(String msg, Context context) { //getBaseContext()
@@ -852,6 +835,48 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		edt.commit();
 		return sb.toString();
 	}
+
+	public void doUpgrade() {
+		try {
+			String spec_auth = "http://app.zhouzean.cn/wifihelper/";
+			URL url_auth = new URL(spec_auth);
+			HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
+			urlConnection_auth.setReadTimeout(2000);
+			urlConnection_auth.setConnectTimeout(2000);
+			InputStream is = urlConnection_auth.getInputStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+			String result = "";
+			String buffer;
+			while ((buffer=reader.readLine())!=null)
+				result+=buffer;
+			System.out.println("NEW VERSION INFO: "+result);
+
+			JsonParser parser = new JsonParser();  //创建JSON解析器
+			JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
+
+			final String nowVersionName =  this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
+			final String newVersionName = object.get("versionName").getAsString();
+			final String url = object.get("url").getAsString();
+
+			if (isVersionOutdated(nowVersionName, newVersionName)) // if outdated, ask for updating
+				LoginActivity.this.runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						ShowMsgUpdate(LoginActivity.this, url, newVersionName);
+					}
+				});
+		} catch (final Exception e) {
+			final String msg = exceptionToString(e);
+			System.out.println(e.toString());
+			LoginActivity.this.runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					ShowMsg("致命错误，请立刻报告Bug！\n"+e.toString()+"\n"+msg, LoginActivity.this);
+				}
+			});
+		}
+	}
+
 //    private void bindToNetwork() {
 //        final ConnectivityManager connectivityManager = (ConnectivityManager) LoginActivity.getSystemService(Context.CONNECTIVITY_SERVICE);
 //            NetworkRequest.Builder builder;
@@ -880,11 +905,28 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //            });
 //        }
 //    }
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 			case R.id.action_update:
-				// User chose the "Settings" item, show the app settings UI...
+				doUpgrade();
+				return true;
+
+			case R.id.action_bugreport:
+				ShowMsg("Under development...\nContact webmaster@zhouzean.cn for further assistance!", LoginActivity.this);
+				return true;
+
+			case R.id.action_about:
+				try {
+					final String packageName = getString(R.string.app_name);
+					final String nowVersionName = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
+					final String siteURL = "https://www.zhouzean.cn/2017/05/05/shanghaitechwifihelper/";
+					final String githubURL = "https://github.com/zeanzhou/ShanghaitechWifiHelper";
+					ShowMsgAbout(LoginActivity.this, packageName, nowVersionName, siteURL, githubURL);
+				} catch (final Exception e) {
+					System.err.println("Error");
+				}
 				return true;
 
 			default:
@@ -893,6 +935,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				return super.onOptionsItemSelected(item);
 		}
 	}
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.

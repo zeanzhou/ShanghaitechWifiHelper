@@ -23,4 +23,5 @@
     <string name="prompt_update">Download</string>
     <string name="menu_update">Update</string>
     <string name="menu_about">About</string>
+    <string name="menu_bugreport">Bug Report</string>
 </resources>
