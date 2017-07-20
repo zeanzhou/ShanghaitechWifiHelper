@@ -19,9 +19,11 @@
     <string name="message_widget_need_auto_connect">OneKeyAuth Widget needs Auto Connect</string>
     <string name="message_post_again">Exchanging data with auth server</string>
     <string name="message_httpcode_not_200">Fail to connect auth server!</string>
-    <string name="message_new_version">New version released</string>
+    <string name="message_new_version">New version released!</string>
     <string name="prompt_update">Download</string>
     <string name="menu_update">Update</string>
     <string name="menu_about">About</string>
     <string name="menu_bugreport">Bug Report</string>
+    <string name="message_already_latest">It is the latest version!</string>
+    <string name="message_update_failure">Fail to connect update server</string>
 </resources>

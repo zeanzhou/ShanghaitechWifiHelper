@@ -18,9 +18,11 @@
     <string name="message_post_again">正在与验证服务器交换数据</string>
     <string name="message_httpcode_not_200">无法连接认证服务器！</string>
     <string name="add_widget">添加小部件</string>
-    <string name="message_new_version">发现新版本</string>
+    <string name="message_new_version">发现新版本！</string>
     <string name="prompt_update">立即下载</string>
     <string name="menu_update">检查更新</string>
     <string name="menu_about">关于</string>
     <string name="menu_bugreport">报告问题</string>
+    <string name="message_already_latest">当前版本为最新版本！</string>
+    <string name="message_update_failure">无法连接到更新服务器</string>
 </resources>

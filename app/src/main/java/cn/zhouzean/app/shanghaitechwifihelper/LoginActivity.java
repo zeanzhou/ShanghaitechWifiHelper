@@ -63,6 +63,7 @@ import android.net.NetworkCapabilities;
 import android.net.Network;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Process;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -621,7 +622,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			});
 		}
 		if (retVal && checkUpdateInfo()) { // if auth successfully && interval > 3 days, check new version
-			doUpgrade();
+			doUpgrade(false);
         }
 		return retVal;
 	}
@@ -738,16 +739,15 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		dlg.show();
 	}
     //提示信息
-    public void ShowMsgUpdate(Context context, String url, String versionName) { //MainActivity.this
-		final String url_ = url;
+    public void ShowMsgUpdate(Context context, final String url, String versionName, String newFeatures) { //MainActivity.this
         AlertDialog.Builder dlg = new AlertDialog.Builder(context);
         dlg.setTitle(this.getResources().getString(R.string.prompt_info));
-        dlg.setMessage(this.getResources().getString(R.string.message_new_version)+" "+versionName);
+        dlg.setMessage(this.getResources().getString(R.string.message_new_version)+" ("+versionName+")"+"\n\n"+newFeatures);
         dlg.setPositiveButton(this.getResources().getString(R.string.prompt_update), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setData(Uri.parse(url_)); // invoke default downloader
+                i.setData(Uri.parse(url)); // invoke default downloader
                 startActivity(i);
             }
         });
@@ -836,35 +836,53 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		return sb.toString();
 	}
 
-	public void doUpgrade() {
+	public void doUpgrade(Boolean alwaysShowDiag) {
 		try {
-			String spec_auth = "http://app.zhouzean.cn/wifihelper/";
-			URL url_auth = new URL(spec_auth);
-			HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
-			urlConnection_auth.setReadTimeout(2000);
-			urlConnection_auth.setConnectTimeout(2000);
-			InputStream is = urlConnection_auth.getInputStream();
-			BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-			String result = "";
-			String buffer;
-			while ((buffer=reader.readLine())!=null)
-				result+=buffer;
-			System.out.println("NEW VERSION INFO: "+result);
+            String spec_auth = "http://app.zhouzean.cn/wifihelper/";
+            URL url_auth = new URL(spec_auth);
+            HttpURLConnection urlConnection_auth = (HttpURLConnection) url_auth.openConnection();
+            urlConnection_auth.setReadTimeout(2000);
+            urlConnection_auth.setConnectTimeout(2000);
+            InputStream is = urlConnection_auth.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            String result = "";
+            String buffer;
+            while ((buffer = reader.readLine()) != null)
+                result += buffer;
+            System.out.println("NEW VERSION INFO: " + result);
 
-			JsonParser parser = new JsonParser();  //创建JSON解析器
-			JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
+            JsonParser parser = new JsonParser();  //创建JSON解析器
+            JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
 
-			final String nowVersionName =  this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
-			final String newVersionName = object.get("versionName").getAsString();
-			final String url = object.get("url").getAsString();
+            final String nowVersionName = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
+            final String newVersionName = object.get("versionName").getAsString();
+            final String url = object.get("url").getAsString();
+            String newFeatures_ = object.get("info").getAsJsonArray().toString();
+            final String newFeatures = newFeatures_.substring(1, newFeatures_.length() - 1).replace(", ", "\n");
 
-			if (isVersionOutdated(nowVersionName, newVersionName)) // if outdated, ask for updating
-				LoginActivity.this.runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						ShowMsgUpdate(LoginActivity.this, url, newVersionName);
-					}
-				});
+            System.out.println(newFeatures);
+            if (isVersionOutdated(nowVersionName, newVersionName)) // if outdated, ask for updating
+                LoginActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ShowMsgUpdate(LoginActivity.this, url, newVersionName, newFeatures);
+                    }
+                });
+            else if (alwaysShowDiag)
+                LoginActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ShowMsg(getString(R.string.message_already_latest), LoginActivity.this);
+                    }
+                });
+        } catch (java.io.IOException e) {
+            LoginActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ShowMsg(getString(R.string.message_update_failure), LoginActivity.this);
+                }
+            });
+
 		} catch (final Exception e) {
 			final String msg = exceptionToString(e);
 			System.out.println(e.toString());
@@ -910,7 +928,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 			case R.id.action_update:
-				doUpgrade();
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try  {
+                            doUpgrade(true);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+                thread.setPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                thread.start();
 				return true;
 
 			case R.id.action_bugreport:
@@ -921,7 +951,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				try {
 					final String packageName = getString(R.string.app_name);
 					final String nowVersionName = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
-					final String siteURL = "https://www.zhouzean.cn/2017/05/05/shanghaitechwifihelper/";
+					final String siteURL = "https://www.zhouzean.cn/2017/05/05/shanghaitechwifihelper";
 					final String githubURL = "https://github.com/zeanzhou/ShanghaitechWifiHelper";
 					ShowMsgAbout(LoginActivity.this, packageName, nowVersionName, siteURL, githubURL);
 				} catch (final Exception e) {
