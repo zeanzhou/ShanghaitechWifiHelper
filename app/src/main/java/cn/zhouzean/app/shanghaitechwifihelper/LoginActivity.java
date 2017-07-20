@@ -18,6 +18,7 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.view.Gravity;
 
 import android.os.Build;
 import android.os.Bundle;
@@ -773,9 +774,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         dlg.setNegativeButton(this.getResources().getString(R.string.prompt_cancel), null);
         dlg.show();
     }
-	public void ShowMsgAbout(Context context, String appName, String versionName, String url1, String url2) {
-		final String text = appName + " (" + versionName + ")\n" + url1 + "\n" + url2;
-
+	public void ShowMsgAbout(Context context, String text) {
 //        final TextView message = new TextView(context);
         final SpannableString s = new SpannableString(text);
         Linkify.addLinks(s, Linkify.WEB_URLS);
@@ -790,6 +789,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         TextView alertTextView = (TextView) dlg.findViewById(android.R.id.message);
         alertTextView.setMovementMethod(LinkMovementMethod.getInstance());
+        alertTextView.setGravity(Gravity.CENTER_HORIZONTAL);
 	}
 
 	//闪现提示
@@ -969,11 +969,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
 			case R.id.action_about:
 				try {
-					final String packageName = getString(R.string.app_name);
-					final String nowVersionName = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
-					final String siteURL = "https://www.zhouzean.cn/2017/05/05/shanghaitechwifihelper";
-					final String githubURL = "https://github.com/zeanzhou/ShanghaitechWifiHelper";
-					ShowMsgAbout(LoginActivity.this, packageName, nowVersionName, siteURL, githubURL);
+					final String appName = getString(R.string.app_name);
+					final String versionName = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
+                    final String author = getString(R.string.app_author);
+					final String siteURL = "www.zhouzean.cn";
+//					final String githubURL = "https://github.com/zeanzhou/ShanghaitechWifiHelper";
+
+                    final String text = appName + " (" + versionName + ")\n" + author + "\n" + siteURL;
+					ShowMsgAbout(LoginActivity.this, text);
 				} catch (final Exception e) {
 					System.err.println("Error");
 				}

@@ -27,4 +27,5 @@
     <string name="message_update_failure">无法连接到更新服务器</string>
     <string name="prompt_ignore">忽略</string>
     <string name="message_checking_update">正在检查新版本……</string>
+    <string name="app_author">周则安</string>
 </resources>
