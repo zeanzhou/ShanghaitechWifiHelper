@@ -21,4 +21,6 @@
     <string name="message_httpcode_not_200">Fail to connect auth server!</string>
     <string name="message_new_version">New version released</string>
     <string name="prompt_update">Download</string>
+    <string name="menu_update">Update</string>
+    <string name="menu_about">About</string>
 </resources>

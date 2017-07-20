@@ -20,4 +20,6 @@
     <string name="add_widget">添加小部件</string>
     <string name="message_new_version">发现新版本</string>
     <string name="prompt_update">立即下载</string>
+    <string name="menu_update">检查更新</string>
+    <string name="menu_about">关于</string>
 </resources>

@@ -22,8 +22,11 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
@@ -99,6 +102,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		Boolean isAutoLogin = preferences.getBoolean("isAutoLogin", false);
 
 		setContentView(R.layout.activity_login);
+		Toolbar myToolbar = (Toolbar) findViewById(R.id.toolbar1);
+		setSupportActionBar(myToolbar);
+
 		// Set up the login form.
 		mUsernameView = (EditText) findViewById(R.id.username);
 
@@ -153,6 +159,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			attemptLogin();
 		else
 			DisplayToast(getString(R.string.message_widget_need_auto_connect), LoginActivity.this);
+
+
 	}
 
 //    private void populateAutoComplete() {
@@ -872,4 +880,23 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //            });
 //        }
 //    }
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+			case R.id.action_update:
+				// User chose the "Settings" item, show the app settings UI...
+				return true;
+
+			default:
+				// If we got here, the user's action was not recognized.
+				// Invoke the superclass to handle it.
+				return super.onOptionsItemSelected(item);
+		}
+	}
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main_menu, menu);
+		return true;
+	}
 }
