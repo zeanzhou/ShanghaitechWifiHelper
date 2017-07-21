@@ -45,7 +45,7 @@ import android.text.method.LinkMovementMethod;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.lang.reflect.Field;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -55,6 +55,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Random;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import android.util.Base64;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -72,6 +77,7 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.GsonBuilder;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -964,8 +970,176 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				return true;
 
 			case R.id.action_bugreport:
-				ShowMsg("Under development...\nContact webmaster@zhouzean.cn for further assistance!", LoginActivity.this);
-				return true;
+                View view = getLayoutInflater().inflate(R.layout.bug_report,null);
+                final EditText et_name = (EditText) view.findViewById(R.id.name);
+                final EditText et_contact = (EditText) view.findViewById(R.id.contact);
+                final EditText et_feedback = (EditText) view.findViewById(R.id.feedback);
+
+                final AlertDialog dlg = new AlertDialog.Builder(LoginActivity.this)
+                .setView(view)
+                .setTitle(getString(R.string.menu_bugreport))
+                .setPositiveButton(this.getResources().getString(R.string.prompt_ok), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(final DialogInterface dialog, int which) {
+                        View focusView = null;
+                        final String name = et_name.getText().toString();
+                        final String contact = et_contact.getText().toString();
+                        final String feedback = et_feedback.getText().toString();
+                        try {
+                            Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+                            field.setAccessible(true);
+                            field.set(dialog, false); // 设置AlertDialog不可被Button关闭
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                        if (TextUtils.isEmpty(name)) {
+                            et_name.setError(getString(R.string.error_field_required));
+                            if (focusView == null)
+                                focusView = et_name;
+                        }
+                        if (TextUtils.isEmpty(feedback)) {
+                            et_feedback.setError(getString(R.string.error_field_required));
+                            if (focusView == null)
+                                focusView = et_feedback;
+                        }
+                        if (focusView != null) {
+                            focusView.requestFocus();
+                            return;
+                        }
+
+                        Thread thread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    String ip = "127.0.0.1";
+                                    WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                                    if (wifiManager.isWifiEnabled()) {
+                                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                                        int ipAddress = wifiInfo.getIpAddress();
+                                        ip = (ipAddress & 0xFF) + "." +
+                                                ((ipAddress >> 8) & 0xFF) + "." +
+                                                ((ipAddress >> 16) & 0xFF) + "." +
+                                                (ipAddress >> 24 & 0xFF);
+                                    }
+
+                                    Map<String, Object> map = new HashMap<>();
+                                    map.put("Name", name);
+                                    map.put("Contact", contact);
+                                    map.put("Feedback", feedback);
+                                    map.put("IP", ip);
+                                    map.put("Time", Long.toString(System.currentTimeMillis()));
+
+                                    Gson gson = new GsonBuilder().create();
+                                    final String json_string = gson.toJson(map);
+
+                                    System.out.println(json_string);
+
+                                    String spec = "http://api.zhouzean.cn/wifihelper/action.php";
+                                    URL url = new URL(spec);
+                                    HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                                    urlConnection.setRequestMethod("POST");
+                                    urlConnection.setReadTimeout(2000);
+                                    urlConnection.setConnectTimeout(2000);
+                                    String data = "data=" + Base64.encodeToString(json_string.getBytes(), Base64.URL_SAFE);
+
+                                    urlConnection.setRequestProperty("Accept", "*/*");
+                                    urlConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                                    urlConnection.setRequestProperty("User-Agent", "ShanghaiTech_WIFI_Helper Android");
+                                    urlConnection.setDoOutput(true);
+                                    urlConnection.setDoInput(true);
+
+                                    OutputStream os = urlConnection.getOutputStream();
+                                    os.write(data.getBytes());
+                                    os.flush();
+                                    if (urlConnection.getResponseCode() == 200) {
+                                        InputStream is = urlConnection.getInputStream();
+                                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                                        int len;
+                                        byte buffer[] = new byte[1024];
+                                        while ((len = is.read(buffer)) != -1) {
+                                            baos.write(buffer, 0, len);
+                                        }
+                                        is.close();
+                                        baos.close();
+                                        final String result = new String(baos.toByteArray());
+
+                                        JsonParser parser = new JsonParser();  //创建JSON解析器
+                                        JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
+
+                                        final Boolean isSuccess = object.get("result").getAsBoolean();
+                                        if (isSuccess) {
+                                            try {
+                                                Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+                                                field.setAccessible(true);
+                                                field.set(dialog, true);
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                            dialog.dismiss();
+                                        }
+                                        LoginActivity.this.runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                if (isSuccess) {
+                                                    ShowMsg(getString(R.string.message_feedback_success), LoginActivity.this);
+                                                } else {
+                                                    ShowMsg(getString(R.string.message_feedback_failure)+" (201)", LoginActivity.this);
+                                                }
+                                            }
+                                        });
+
+                                    } else {
+                                        LoginActivity.this.runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                ShowMsg(getString(R.string.message_feedback_failure)+" (200)", LoginActivity.this);
+                                            }
+                                        });
+                                    }
+
+                                }
+                                catch (java.net.UnknownHostException | java.net.SocketTimeoutException e) {
+                                    LoginActivity.this.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            ShowMsg(getString(R.string.message_feedback_failure)+" (202)", LoginActivity.this);
+                                        }
+                                    });
+                                }
+                                catch (final Exception e) {
+                                    final String msg = exceptionToString(e);
+                                    System.out.println(e.toString());
+                                    LoginActivity.this.runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            ShowMsg("致命错误，请立刻报告Bug！\n"+e.toString()+"\n"+msg, LoginActivity.this);
+                                        }
+                                    });
+                                }
+                            }
+                        });
+//                        thread.setPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                        thread.start();
+
+                    }
+                })
+                .setNegativeButton(this.getResources().getString(R.string.prompt_cancel), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        try {
+                            Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+                            field.setAccessible(true);
+                            field.set(dialog, true);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                })
+                .setCancelable(false)
+                .show();
+
+                return true;
 
 			case R.id.action_about:
 				try {

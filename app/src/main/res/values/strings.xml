@@ -27,6 +27,11 @@
     <string name="message_already_latest">It is the latest version!</string>
     <string name="message_update_failure">Fail to connect update server</string>
     <string name="prompt_ignore">Ignore</string>
-    <string name="message_checking_update">Checking latest version ...</string>
+    <string name="message_checking_update">Checking latest version...</string>
     <string name="app_author">Zean Zhou</string>
+    <string name="message_feedback_failure">Cannot connect to app server, Please retry later!</string>
+    <string name="message_feedback_success">Your feedback has been submitted!</string>
+    <string name="prompt_feedback_name">Name</string>
+    <string name="prompt_feedback_contact">Contact (QQ/Email/Phone)</string>
+    <string name="prompt_feedback_feedback">Feedback</string>
 </resources>

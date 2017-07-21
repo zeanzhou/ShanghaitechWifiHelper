@@ -28,4 +28,9 @@
     <string name="prompt_ignore">忽略</string>
     <string name="message_checking_update">正在检查新版本……</string>
     <string name="app_author">周则安</string>
+    <string name="message_feedback_failure">无法连接到服务器，请稍后再试！</string>
+    <string name="message_feedback_success">反馈提交成功！</string>
+    <string name="prompt_feedback_name">姓名</string>
+    <string name="prompt_feedback_feedback">反馈信息</string>
+    <string name="prompt_feedback_contact">联系方式 (QQ/Email/手机)</string>
 </resources>
