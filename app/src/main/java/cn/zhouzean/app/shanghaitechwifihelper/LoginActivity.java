@@ -616,9 +616,18 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				});
 				System.out.println(messageToDisplay);
 			} else {
-				ShowMsg(getString(R.string.message_httpcode_not_200), LoginActivity.this);
+				ShowMsg(getString(R.string.message_httpcode_not_200) + "(100)", LoginActivity.this);
 			}
-		} catch (final Exception e) {
+		}
+        catch (java.net.UnknownHostException | java.net.SocketTimeoutException e) {
+            LoginActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ShowMsg(getString(R.string.message_httpcode_not_200) + "(102)", LoginActivity.this);
+                }
+            });
+        }
+		catch (final Exception e) {
 			final String msg = exceptionToString(e);
 			System.out.println(e.toString());
 			LoginActivity.this.runOnUiThread(new Runnable() {
@@ -693,7 +702,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			} else {
 				System.out.println("Sync Connection Failed...");
 			}
-		} catch (final Exception e) {
+		}
+        catch (java.net.UnknownHostException | java.net.SocketTimeoutException e) {
+            LoginActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ShowMsg(getString(R.string.message_httpcode_not_200) + "(102.1)", LoginActivity.this);
+                }
+            });
+        }
+		catch (final Exception e) {
 			final String msg = exceptionToString(e);
 			System.out.println(e.toString());
 			LoginActivity.this.runOnUiThread(new Runnable() {
@@ -746,16 +764,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
 	//提示信息
 	public void ShowMsgTurnOnWifi(Context context, final WifiManager wifiManager) { //MainActivity.this
-		final Context context_ = context;
-		final WifiManager wifiManager_ = wifiManager;
 		AlertDialog.Builder dlg = new AlertDialog.Builder(context);
 		dlg.setTitle(this.getResources().getString(R.string.prompt_info));
 		dlg.setMessage(this.getResources().getString(R.string.message_wifi_disabled));
 		dlg.setPositiveButton(this.getResources().getString(R.string.prompt_turn_on_wifi), new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				if (wifiManager_ != null) {
-					wifiManager_.setWifiEnabled(true);
+				if (wifiManager != null) {
+					wifiManager.setWifiEnabled(true);
 				} else {
 					System.err.println("WifiManager is null!");
 				}
@@ -900,14 +916,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         ShowMsg(getString(R.string.message_already_latest), LoginActivity.this);
                     }
                 });
-        } catch (java.io.IOException e) {
+        } catch (java.io.IOException e) { // TODO: Check if this Exception too low level
             LoginActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     ShowMsg(getString(R.string.message_update_failure), LoginActivity.this);
                 }
             });
-
 		} catch (final Exception e) {
 			final String msg = exceptionToString(e);
 			System.out.println(e.toString());
