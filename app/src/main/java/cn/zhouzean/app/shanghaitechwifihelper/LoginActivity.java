@@ -78,6 +78,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -856,8 +857,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		String[] oldVersion = oldVersionName.split("\\.");
 		String[] newVersion = newVersionName.split("\\.");
 		for (Integer i = 0; i < 3; ++i) {
-			 if (Integer.parseInt(oldVersion[i]) < Integer.parseInt(newVersion[i]))
+            if (Integer.parseInt(oldVersion[i]) < Integer.parseInt(newVersion[i]))
 			 	return true;
+            else if (Integer.parseInt(oldVersion[i]) > Integer.parseInt(newVersion[i]))
+                return false;
 		}
 		return false;
 	}
@@ -877,7 +880,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 		return sb.toString();
 	}
 
-	public void doUpgrade(Boolean alwaysShowDiag) {
+	public void doUpgrade(final Boolean alwaysShowDiag) {
 		try {
             String spec_auth = "http://app.zhouzean.cn/wifihelper/";
             URL url_auth = new URL(spec_auth);
@@ -898,10 +901,18 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             final String nowVersionName = this.getPackageManager().getPackageInfo(this.getPackageName(), 0).versionName;
             final String newVersionName = object.get("versionName").getAsString();
             final String url = object.get("url").getAsString();
-            String newFeatures_ = object.get("info").getAsJsonArray().toString();
-            final String newFeatures = newFeatures_.substring(1, newFeatures_.length() - 1).replace(", ", "\n");
 
+            StringBuffer sb = new StringBuffer();
+            JsonArray list = object.get("info").getAsJsonArray();
+            for (JsonElement s: list) {
+                sb.append(s.getAsString());
+                sb.append("\n");
+            }
+            if (sb.length() >= 1)
+                sb.deleteCharAt(sb.length()-1); // Delete Extra newline
+            final String newFeatures = new String(sb);
             System.out.println(newFeatures);
+
             if (isVersionOutdated(nowVersionName, newVersionName)) // if outdated, ask for updating
                 LoginActivity.this.runOnUiThread(new Runnable() {
                     @Override
@@ -916,11 +927,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         ShowMsg(getString(R.string.message_already_latest), LoginActivity.this);
                     }
                 });
-        } catch (java.io.IOException e) { // TODO: Check if this Exception too low level
+        } catch (java.io.IOException e) {
             LoginActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    ShowMsg(getString(R.string.message_update_failure), LoginActivity.this);
+                    if (alwaysShowDiag)
+                        ShowMsg(getString(R.string.message_update_failure), LoginActivity.this);
                 }
             });
 		} catch (final Exception e) {
