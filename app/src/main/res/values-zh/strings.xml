@@ -9,10 +9,10 @@
     <string name="prompt_ok">确认</string>
     <string name="prompt_password">密码</string>
     <string name="prompt_remember">记住密码</string>
-    <string name="prompt_turn_on_wifi">启用WIFI</string>
+    <string name="prompt_turn_on_wifi">启用 WIFI</string>
     <string name="prompt_username">用户名</string>
     <string name="message_wifi_disabled">WIFI 未启用</string>
-    <string name="message_wifi_wrong_ssid">请连接到ShanghaiTech无线网络！</string>
+    <string name="message_wifi_wrong_ssid">请连接到 ShanghaiTech 无线网络！</string>
     <string name="appwidget_text">一键认证</string>
     <string name="message_widget_need_auto_connect">打开自动连接以使用“一键认证”小插件</string>
     <string name="message_post_again">正在与验证服务器交换数据</string>
@@ -33,4 +33,5 @@
     <string name="prompt_feedback_name">姓名</string>
     <string name="prompt_feedback_feedback">反馈信息</string>
     <string name="prompt_feedback_contact">联系方式 (QQ/Email/手机)</string>
+    <string name="message_feedback_sending_now">正在提交……</string>
 </resources>

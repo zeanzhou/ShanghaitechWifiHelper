@@ -59,6 +59,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import android.util.Base64;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -975,13 +977,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //            });
 //        }
 //    }
-
+	private Lock BugReportLock = new ReentrantLock();
+	private boolean isCancelled = false;
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 			case R.id.action_update:
                 DisplayToast(getString(R.string.message_checking_update), LoginActivity.this);
-                Thread thread = new Thread(new Runnable() {
+                Thread thread_update = new Thread(new Runnable() {
                     @Override
                     public void run() {
                         try  {
@@ -992,23 +995,23 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     }
                 });
 
-                thread.setPriority(Process.THREAD_PRIORITY_BACKGROUND);
-                thread.start();
+                thread_update.setPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                thread_update.start();
 				return true;
 
 			case R.id.action_bugreport:
+				isCancelled = false;
                 View view = getLayoutInflater().inflate(R.layout.bug_report,null);
                 final EditText et_name = (EditText) view.findViewById(R.id.name);
                 final EditText et_contact = (EditText) view.findViewById(R.id.contact);
                 final EditText et_feedback = (EditText) view.findViewById(R.id.feedback);
-
                 final AlertDialog dlg = new AlertDialog.Builder(LoginActivity.this)
                 .setView(view)
                 .setTitle(getString(R.string.menu_bugreport))
                 .setPositiveButton(this.getResources().getString(R.string.prompt_ok), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialog, int which) {
-                        View focusView = null;
+						View focusView = null;
                         final String name = et_name.getText().toString();
                         final String contact = et_contact.getText().toString();
                         final String feedback = et_feedback.getText().toString();
@@ -1019,7 +1022,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-
                         if (TextUtils.isEmpty(name)) {
                             et_name.setError(getString(R.string.error_field_required));
                             if (focusView == null)
@@ -1035,9 +1037,22 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                             return;
                         }
 
-                        Thread thread = new Thread(new Runnable() {
+                        // 设置EditText不可修改
+                        et_name.setKeyListener(null);
+                        et_contact.setKeyListener(null);
+                        et_feedback.setKeyListener(null);
+
+                        Thread thread_bugreport = new Thread(new Runnable() {
                             @Override
                             public void run() {
+								if (!BugReportLock.tryLock())
+									return;
+								LoginActivity.this.runOnUiThread(new Runnable() {
+									@Override
+									public void run() {
+										DisplayToast(getString(R.string.message_feedback_sending_now), LoginActivity.this);
+									}
+								});
                                 try {
                                     String ip = "127.0.0.1";
                                     WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -1066,8 +1081,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                     URL url = new URL(spec);
                                     HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                                     urlConnection.setRequestMethod("POST");
-                                    urlConnection.setReadTimeout(2000);
-                                    urlConnection.setConnectTimeout(2000);
+                                    urlConnection.setReadTimeout(3500);
+                                    urlConnection.setConnectTimeout(3500);
                                     String data = "data=" + Base64.encodeToString(json_string.getBytes(), Base64.URL_SAFE);
 
                                     urlConnection.setRequestProperty("Accept", "*/*");
@@ -1076,9 +1091,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                     urlConnection.setDoOutput(true);
                                     urlConnection.setDoInput(true);
 
+									if (isCancelled)
+										return;
+
                                     OutputStream os = urlConnection.getOutputStream();
                                     os.write(data.getBytes());
                                     os.flush();
+
                                     if (urlConnection.getResponseCode() == 200) {
                                         InputStream is = urlConnection.getInputStream();
                                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1105,34 +1124,37 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                             }
                                             dialog.dismiss();
                                         }
-                                        LoginActivity.this.runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                if (isSuccess) {
-                                                    ShowMsg(getString(R.string.message_feedback_success), LoginActivity.this);
-                                                } else {
-                                                    ShowMsg(getString(R.string.message_feedback_failure)+" (201)", LoginActivity.this);
-                                                }
-                                            }
-                                        });
+										if (!isCancelled)
+											LoginActivity.this.runOnUiThread(new Runnable() {
+												@Override
+												public void run() {
+													if (isSuccess) {
+														ShowMsg(getString(R.string.message_feedback_success), LoginActivity.this);
+													} else {
+														ShowMsg(getString(R.string.message_feedback_failure)+" (201)", LoginActivity.this);
+													}
+												}
+											});
 
                                     } else {
-                                        LoginActivity.this.runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                ShowMsg(getString(R.string.message_feedback_failure)+" (200)", LoginActivity.this);
-                                            }
-                                        });
+										if (!isCancelled)
+											LoginActivity.this.runOnUiThread(new Runnable() {
+												@Override
+												public void run() {
+													ShowMsg(getString(R.string.message_feedback_failure)+" (200)", LoginActivity.this);
+												}
+											});
                                     }
 
                                 }
                                 catch (java.net.UnknownHostException | java.net.SocketTimeoutException e) {
-                                    LoginActivity.this.runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            ShowMsg(getString(R.string.message_feedback_failure)+" (202)", LoginActivity.this);
-                                        }
-                                    });
+									if (!isCancelled)
+										LoginActivity.this.runOnUiThread(new Runnable() {
+											@Override
+											public void run() {
+												ShowMsg(getString(R.string.message_feedback_failure)+" (202)", LoginActivity.this);
+											}
+										});
                                 }
                                 catch (final Exception e) {
                                     final String msg = exceptionToString(e);
@@ -1144,16 +1166,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                         }
                                     });
                                 }
-                            }
+                                finally {
+									BugReportLock.unlock();
+								}
+							}
                         });
-//                        thread.setPriority(Process.THREAD_PRIORITY_BACKGROUND);
-                        thread.start();
-
+						thread_bugreport.setPriority(Process.THREAD_PRIORITY_BACKGROUND);
+						thread_bugreport.start();
                     }
                 })
                 .setNegativeButton(this.getResources().getString(R.string.prompt_cancel), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+						isCancelled = true;
                         try {
                             Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
                             field.setAccessible(true);

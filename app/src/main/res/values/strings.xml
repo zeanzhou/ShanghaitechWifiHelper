@@ -34,4 +34,5 @@
     <string name="prompt_feedback_name">Name</string>
     <string name="prompt_feedback_contact">Contact (QQ/Email/Phone)</string>
     <string name="prompt_feedback_feedback">Feedback</string>
+    <string name="message_feedback_sending_now">Sending...</string>
 </resources>
