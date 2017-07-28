@@ -272,7 +272,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 			WifiManager wifiManager = (WifiManager) LoginActivity.this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 			if (wifiManager != null) {
 				int wifiState = wifiManager.getWifiState();
-				if (wifiState == wifiManager.WIFI_STATE_ENABLED) {
+				if (wifiState == WifiManager.WIFI_STATE_ENABLED) {
 					WifiInfo wifiInfo = wifiManager.getConnectionInfo();
 					String SSID = wifiInfo.getSSID();
 					if (SSID.startsWith("\"") && SSID.endsWith("\""))
@@ -440,7 +440,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 	public static String getRandomString(int length) { //length表示生成字符串的长度
 		String base = "abcdefghijklmnopqrstuvwxyz0123456789";
 		Random random = new Random();
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < length; i++) {
 			int number = random.nextInt(base.length());
 			sb.append(base.charAt(number));
@@ -497,7 +497,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				// 创建字节输出流对象
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				// 定义读取的长度
-				int len = 0;
+				int len;
 				// 定义缓冲区
 				byte buffer[] = new byte[1024];
 				// 按照缓冲区的大小，循环读取
@@ -515,7 +515,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				JsonParser parser = new JsonParser();  //创建JSON解析器
 				JsonObject object = (JsonObject) parser.parse(result);  //创建JsonObject对象
 
-				Boolean success = object.get("success").getAsBoolean();
+//				Boolean success = object.get("success").getAsBoolean();
 				String message = object.get("message").getAsString();
 //                System.out.println("message="+message);
 //                System.out.println("success="+success);
@@ -544,7 +544,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 					System.out.println("IPv4 Address=" + IPv4Addr);
 					System.out.println("Session ID=" + sessionID);
 					System.out.println("XSRF_TOKEN=" + XSRF_TOKEN);
-					if (portalAuth == false) { // 101 1103 1612 portalAuth == 0
+					if (!portalAuth) { // 101 1103 1612 portalAuth == 0
 						message = "恭喜您，已成功登录";
 						retVal = true;
 					}
@@ -689,7 +689,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 				// 创建字节输出流对象
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				// 定义读取的长度
-				int len = 0;
+				int len;
 				// 定义缓冲区
 				byte buffer[] = new byte[1024];
 				// 按照缓冲区的大小，循环读取
@@ -806,7 +806,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //        message.setText(s);
 //        message.setMovementMethod(LinkMovementMethod.getInstance());
 
-        AlertDialog dlg = new AlertDialog.Builder(LoginActivity.this)
+        AlertDialog dlg = new AlertDialog.Builder(context)
         .setTitle(this.getResources().getString(R.string.menu_about))
 		.setMessage(s)
 		.setPositiveButton(this.getResources().getString(R.string.prompt_ok), null)
@@ -1001,7 +1001,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
 			case R.id.action_bugreport:
 				isCancelled = false;
-                View view = getLayoutInflater().inflate(R.layout.bug_report,null);
+                View view = getLayoutInflater().inflate(R.layout.bug_report, null);
                 final EditText et_name = (EditText) view.findViewById(R.id.name);
                 final EditText et_contact = (EditText) view.findViewById(R.id.contact);
                 final EditText et_feedback = (EditText) view.findViewById(R.id.feedback);
@@ -1024,8 +1024,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                         }
                         if (TextUtils.isEmpty(name)) {
                             et_name.setError(getString(R.string.error_field_required));
-                            if (focusView == null)
-                                focusView = et_name;
+							focusView = et_name;
                         }
                         if (TextUtils.isEmpty(feedback)) {
                             et_feedback.setError(getString(R.string.error_field_required));
